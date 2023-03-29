@@ -1,0 +1,46 @@
+{
+  "project_info": {
+    "project_number": "565403363230",
+    "project_id": "cantorean-6d0cd",
+    "storage_bucket": "cantorean-6d0cd.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:565403363230:android:25c56c34bc9c7cb743188f",
+        "android_client_info": {
+          "package_name": "com.example.cantorean"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "565403363230-ok6jd3q915e2frj0p9frk26s2vdho2ed.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBOejsX2H-RH5vibFpmrS1xDpkn2BYMV3I"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "565403363230-ok6jd3q915e2frj0p9frk26s2vdho2ed.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "565403363230-ibm77pr85bm823csvmre5elqdji29sjj.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.cantorean"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

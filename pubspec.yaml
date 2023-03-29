@@ -38,7 +38,12 @@ dependencies:
   cupertino_icons: ^1.0.2
 
   draggable_widget: ^1.0.0
+  cloud_firestore: ^4.4.5
+  firebase_storage: ^11.0.16
+  csv:
+  firebase_core: ^2.8.0
 
+  equatable: ^2.0.5
 dev_dependencies:
   flutter_test:
     sdk: flutter
