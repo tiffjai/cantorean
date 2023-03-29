@@ -7,7 +7,7 @@ import 'events.dart';
 import 'states.dart';
 
 class SentenceShuffleBloc extends Bloc<SentenceShuffleEvent, SentenceShuffleState> {
-  final String sentence;
+  String sentence;
   final List<String> shuffledWords;
 
   SentenceShuffleBloc({required this.sentence, required List<String> shuffledWords})
@@ -34,6 +34,17 @@ class SentenceShuffleBloc extends Bloc<SentenceShuffleEvent, SentenceShuffleStat
       List<String> targetWords = List<String>.filled(state.shuffledWords.length, '');
 
       emit(SentenceShuffleInProgress(shuffledWords: state.shuffledWords, targetWords: targetWords));
+    });
+
+    // Modify the event handling code
+    on<SentenceNewQuestionEvent>((event, emit) async {
+      sentence = event.sentence;
+      List<String> newShuffledWords = event.shuffledWords;
+
+      emit(SentenceShuffleInProgress(
+        shuffledWords: newShuffledWords,
+        targetWords: List.filled(newShuffledWords.length, ''),
+      ));
     });
   }
 }

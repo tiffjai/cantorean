@@ -13,3 +13,15 @@ class SentenceWordDroppedEvent extends SentenceShuffleEvent {
 class SentenceCheckAnswerEvent extends SentenceShuffleEvent {}
 
 class SentenceResetEvent extends SentenceShuffleEvent {}
+
+//next question event
+class SentenceNewQuestionEvent extends SentenceShuffleEvent {
+  final String sentence;
+  final List<String> shuffledWords;
+
+  SentenceNewQuestionEvent({required this.sentence, required this.shuffledWords});
+
+  @override
+  List<Object> get props => [sentence, shuffledWords];
+}
+

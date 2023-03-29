@@ -261,11 +261,15 @@ class SentenceShufflePage extends StatelessWidget {
                           ),
                           SizedBox(height: 20),
                           ElevatedButton(
-                            onPressed: () {
-                              BlocProvider.of<SentenceShuffleBloc>(context).add(SentenceResetEvent());
+                            onPressed: () async {
+                              final newSentence = await fetchRandomSentence();
+                              final newShuffledWords = newSentence.split(' ')..shuffle();
+                              BlocProvider.of<SentenceShuffleBloc>(context)
+                                  .add(SentenceNewQuestionEvent(sentence: newSentence, shuffledWords: newShuffledWords));
                             },
-                            child: Text('Reset'),
+                            child: Text('Next Sentence'),
                           ),
+
                         ],
                       ),
                     );
