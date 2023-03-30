@@ -1,6 +1,5 @@
 # cantorean
-
-A new Flutter project.
+This is a simple korean language learning app that shuffle level 1 sentences of the TOPIK exam.
 
 ## Getting Started
 
