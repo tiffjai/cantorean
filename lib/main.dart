@@ -41,7 +41,6 @@ Future<String> fetchRandomSentence() async {
   }
 }
 
-
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(
@@ -50,59 +49,42 @@ void main() async {
   runApp(MyApp());
 }
 
-class MyApp extends StatefulWidget {
-  @override
-  _MyAppState createState() => _MyAppState();
-}
-
-class _MyAppState extends State<MyApp> {
-  late Future<FirebaseApp> _initialization;
-  late Future<String> _sentenceFuture;
-
-  @override
-  void initState() {
-    super.initState();
-    _initialization = Firebase.initializeApp();
-    _sentenceFuture = fetchRandomSentence();
-  }
-
+class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder(
-      future: _initialization,
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.done) {
-          return CupertinoApp(
-            home: BlocProvider(
-              create: (context) => SentenceShuffleBloc(
-                sentence: '',
-                shuffledWords: [],
-              ),
-              child: CupertinoSentenceShufflePage(),
-            ),
-          );
-        }
-
-        return CupertinoApp(
-          home: CupertinoPageScaffold(
-            navigationBar: CupertinoNavigationBar(
-              middle: Text('Cantorean', style: TextStyle(color: CupertinoColors.white)),
-              backgroundColor: pantoneOrange,
-            ),
-            child: Center(
-              child: CupertinoActivityIndicator(),
-            ),
-          ),
-        );
-      },
+    return CupertinoApp(
+      home: CupertinoSentenceShufflePage(),
     );
   }
 }
 
-class CupertinoSentenceShufflePage extends StatelessWidget {
+class CupertinoSentenceShufflePage extends StatefulWidget {
+  @override
+  _CupertinoSentenceShufflePageState createState() => _CupertinoSentenceShufflePageState();
+}
 
+class _CupertinoSentenceShufflePageState extends State<CupertinoSentenceShufflePage> {
+  int gamesPlayed = 0;
+  int correctAnswers = 0;
+  int wrongAnswers = 0;
 
-  
+  void _incrementGamesPlayed() {
+    setState(() {
+      gamesPlayed++;
+    });
+  }
+
+  void _incrementCorrectAnswers() {
+    setState(() {
+      correctAnswers++;
+    });
+  }
+
+  void _incrementWrongAnswers() {
+    setState(() {
+      wrongAnswers++;
+    });
+  }
 
 
   @override
@@ -130,113 +112,161 @@ class CupertinoSentenceShufflePage extends StatelessWidget {
         backgroundColor: pantoneOrange,
         border: Border.all(width: 0, color: pantoneOrange), // Remove the border
       ),
-      child: FutureBuilder(
-        future: fetchRandomSentence(),
-        builder: (BuildContext context, AsyncSnapshot<String> snapshot) {
-    if (snapshot.hasData) {
-    final sentence = snapshot.data!;
-    final shuffledWords = sentence.split(' ')..shuffle();
-    return BlocProvider(
-      create: (context) => SentenceShuffleBloc(sentence: sentence, shuffledWords: shuffledWords),
-      child: BlocBuilder<SentenceShuffleBloc, SentenceShuffleState>(
-        builder: (context, state) {
-      if (state is SentenceShuffleInProgress) {
-        return Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                'Drag the words to the boxes to form the correct sentence:',
-                style: TextStyle(fontSize: 18),
-              ),
-              SizedBox(height: 20),
+      child: Stack(
+          children: [
+          FutureBuilder(
+          future: fetchRandomSentence(),
+      builder: (BuildContext context, AsyncSnapshot<String> snapshot) {
+        if (snapshot.hasData) {
+          final sentence = snapshot.data!;
+          final shuffledWords = sentence.split(' ')..shuffle();
+          return BlocProvider(
+              create: (context) => SentenceShuffleBloc(sentence: sentence, shuffledWords: shuffledWords),
+              child: BlocListener<SentenceShuffleBloc, SentenceShuffleState>(
+                listener: (context, state) {
+                  if (state is SentenceShuffleCorrect) {
+                    _incrementCorrectAnswers();
+                  } else if (state is SentenceShuffleIncorrect) {
+                    _incrementWrongAnswers();
+                  }
+                },
+                child: BlocBuilder<SentenceShuffleBloc, SentenceShuffleState>(
+                  builder: (context, state) {
 
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: state.shuffledWords
-                    .map((word) => DraggableBox(word: word))
-                    .toList(),
+                    if (state is SentenceShuffleInProgress) {
+                    return Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            'Drag the words to the boxes to form the correct sentence:',
+                            style: TextStyle(fontSize: 18),
+                          ),
+                          SizedBox(height: 20),
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: state.shuffledWords
+                                .map((word) => DraggableBox(word: word))
+                                .toList(),
+                          ),
+                          SizedBox(height: 20),
+                          Wrap(
+                            spacing: 8.0,
+                            runSpacing: 8.0,
+                            children: List.generate(
+                              state.targetWords.length,
+                                  (index) => DragTargetBox(index: index),
+                            ),
+                          ),
+                          SizedBox(height: 20),
+                          CupertinoButton(
+                            color: pantoneOrange,
+                            onPressed: () {
+                              BlocProvider.of<SentenceShuffleBloc>(context).add(SentenceCheckAnswerEvent());
+                            },
+                            child: Text('Check Answer'),
+                          ),
+                        ],
+                      ),
+                    );
+                    } else if (state is SentenceShuffleCorrect) {
+                      return Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              'Congratulations! You have reordered the sentence correctly!',
+                              style: TextStyle(fontSize: 18),
+                            ),
+                            SizedBox(height: 20),
+                            if (gamesPlayed < 5) // Only show the "Next Sentence" button if the user has not reached the limit
+                              CupertinoButton(
+                                color: pantoneOrange,
+                                onPressed: () async {
+                                  final newSentence = await fetchRandomSentence();
+                                  final newShuffledWords = newSentence.split(' ')..shuffle();
+                                  BlocProvider.of<SentenceShuffleBloc>(context).add(
+                                      SentenceNewQuestionEvent(
+                                          sentence: newSentence, shuffledWords: newShuffledWords));
+                                  _incrementGamesPlayed(); // Call the callback here
+                                },
+                                child: Text('Next Sentence'),
+                              ),
+                          ],
+                        ),
+                      );
+                    } else if (state is SentenceShuffleIncorrect) {
+                      return Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              'Try again! The sentence is not in the correct order.',
+                              style: TextStyle(fontSize: 18),
+                            ),
+                            SizedBox(height: 20),
+                            CupertinoButton(
+                              color: pantoneOrange,
+                              onPressed: () {
+                                BlocProvider.of<SentenceShuffleBloc>(context).add(SentenceResetEvent());
+                                setState(() {
+                                  wrongAnswers++;
+                                });
+                              },
+                              child: Text('Reset'),
+                            ),
+                            CupertinoButton(
+                              color: pantoneOrange,
+                              onPressed: () async {
+                                final newSentence = await fetchRandomSentence();
+                                final newShuffledWords = newSentence.split(' ')..shuffle();
+                                BlocProvider.of<SentenceShuffleBloc>(context).add(
+                                    SentenceNewQuestionEvent(
+                                        sentence: newSentence, shuffledWords: newShuffledWords));
+                                _incrementGamesPlayed();
+                                setState(() {
+                                  correctAnswers++;
+                                });
+                              },
+                              child: Text('Next Sentence'),
+                            ),
+                          ],
+                        ),
+                      );
+                    } else {
+                      return Center(child: CupertinoActivityIndicator());
+                    }
+                  },
+                ),
               ),
-              SizedBox(height: 20),
-          // Add the DragTargetBox widgets using List.generate
-          Wrap(
-            spacing: 8.0,
-            runSpacing: 8.0,
-            children: List.generate(
-              state.targetWords.length,
-                  (index) => DragTargetBox(index: index),
+          );
+        } else if (snapshot.hasError) {
+          return Center(child: Text("Error loading sentence"));
+        } else {
+          return Center(child: CupertinoActivityIndicator());
+        }
+      },
+          ),
+            Positioned(
+              left: 16,
+              bottom: 16,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Correct: $correctAnswers',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                  Text(
+                    'Wrong: $wrongAnswers',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                ],
+              ),
             ),
-          ),
-
-
-              SizedBox(height: 20),
-              CupertinoButton(
-                color: pantoneOrange,
-                onPressed: () {
-                  BlocProvider.of<SentenceShuffleBloc>(context).add(SentenceCheckAnswerEvent());
-                },
-                child: Text('Check Answer'),
-              ),
-            ],
-          ),
-        );
-      } else if (state is SentenceShuffleCorrect) {
-        return Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                'Congratulations! You have reordered the sentence correctly!',
-                style: TextStyle(fontSize: 18),
-              ),
-              SizedBox(height: 20),
-              CupertinoButton(
-                color: pantoneOrange,
-                onPressed: () async {
-                  final newSentence = await fetchRandomSentence();
-                  final newShuffledWords = newSentence.split(' ')..shuffle();
-                  BlocProvider.of<SentenceShuffleBloc>(context)
-                      .add(SentenceNewQuestionEvent(sentence: newSentence, shuffledWords: newShuffledWords));
-                },
-                child: Text('Next Sentence'),
-              ),
-            ],
-          ),
-        );
-      } else if (state is SentenceShuffleIncorrect) {
-        return Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                'Try again! The sentence is not in the correct order.',
-                style: TextStyle(fontSize: 18),
-              ),
-              SizedBox(height: 20),
-              CupertinoButton(
-                color: pantoneOrange,
-                onPressed: () {
-                  BlocProvider.of<SentenceShuffleBloc>(context).add(SentenceResetEvent());
-                },
-                child: Text('Reset'),
-              ),
-            ],
-          ),
-        );
-      } else {
-        return Center(child: CupertinoActivityIndicator());
-      }
-    },
+          ],
       ),
-      );
-      } else if (snapshot.hasError) {
-      return Center(child: Text("Error loading sentence"));
-      } else {
-      return Center(child: CupertinoActivityIndicator());
-      }
-    },
-        ),
     );
   }
 }
