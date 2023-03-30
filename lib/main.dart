@@ -1,3 +1,4 @@
+import 'package:cantorean/cheatsheet_page.dart';
 import 'package:cantorean/widgets/drag_target_box.dart';
 import 'package:cantorean/widgets/draggable_box.dart';
 import 'package:flutter/cupertino.dart';
@@ -19,7 +20,7 @@ import 'model/firebase_options.dart';
 const Color pantoneOrange = Color(0xFFDEA07D);
 const Color pantoneBlue = Color(0x8AABD1E8);
 
-Future<String> fetchRandomSentence() async {
+Future<Map<String, dynamic>> fetchSentences() async {
   try {
     // Replace this with the path to your CSV file in Firebase Storage
     const String firebaseStorageCsvPath = 'koreansentences.csv';
@@ -34,12 +35,21 @@ Future<String> fetchRandomSentence() async {
     final randomRow = csvTable[Random().nextInt(csvTable.length - 1) + 1];
 
     // Assume the sentence is in the first column of the row
-    return randomRow[0].toString();
+    String randomSentence = randomRow[0].toString();
+
+    // Get all sentences
+    List<String> sentences = csvTable.sublist(1).map((row) => row[0].toString()).toList();
+
+    return {
+      'randomSentence': randomSentence,
+      'sentences': sentences,
+    };
   } catch (error) {
-    print('Error in fetchRandomSentence: $error');
+    print('Error in fetchSentences: $error');
     throw error;
   }
 }
+
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -67,7 +77,7 @@ class _CupertinoSentenceShufflePageState extends State<CupertinoSentenceShuffleP
   int gamesPlayed = 0;
   int correctAnswers = 0;
   int wrongAnswers = 0;
-
+  String? sentence;
   void _incrementGamesPlayed() {
     setState(() {
       gamesPlayed++;
@@ -85,7 +95,40 @@ class _CupertinoSentenceShufflePageState extends State<CupertinoSentenceShuffleP
       wrongAnswers++;
     });
   }
+  @override
+  void initState() {
+    super.initState();
+    loadSentence();
+  }
 
+  Future<void> loadSentence() async {
+    final newSentence = await fetchRandomSentence();
+    setState(() {
+      sentence = newSentence;
+    });
+  }
+
+  Future<String> fetchRandomSentence() async {
+    try {
+      // Replace this with the path to your CSV file in Firebase Storage
+      const String firebaseStorageCsvPath = 'koreansentences.csv';
+
+      // Download the CSV file
+      final csvContent = await FirebaseStorage.instance.ref(firebaseStorageCsvPath).getData();
+
+      // Parse the CSV data
+      final csvTable = CsvToListConverter().convert(utf8.decode(csvContent!));
+
+      // Randomly select a row from the CSV table, skipping the header row
+      final randomRow = csvTable[Random().nextInt(csvTable.length - 1) + 1];
+
+      // Assume the sentence is in the first column of the row
+      return randomRow[0].toString();
+    } catch (error) {
+      print('Error in fetchRandomSentence: $error');
+      throw error;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -114,11 +157,13 @@ class _CupertinoSentenceShufflePageState extends State<CupertinoSentenceShuffleP
       ),
       child: Stack(
           children: [
-          FutureBuilder(
-          future: fetchRandomSentence(),
-      builder: (BuildContext context, AsyncSnapshot<String> snapshot) {
-        if (snapshot.hasData) {
-          final sentence = snapshot.data!;
+            FutureBuilder(
+              future: fetchSentences(),
+              builder: (BuildContext context, AsyncSnapshot<Map<String, dynamic>> snapshot) {
+                if (snapshot.hasData) {
+                  final sentence = snapshot.data!['randomSentence'] as String;
+                  final sentences = snapshot.data!['sentences'] as List<String>;
+
           final shuffledWords = sentence.split(' ')..shuffle();
           return BlocProvider(
               create: (context) => SentenceShuffleBloc(sentence: sentence, shuffledWords: shuffledWords),
@@ -241,13 +286,13 @@ class _CupertinoSentenceShufflePageState extends State<CupertinoSentenceShuffleP
                 ),
               ),
           );
-        } else if (snapshot.hasError) {
-          return Center(child: Text("Error loading sentence"));
-        } else {
-          return Center(child: CupertinoActivityIndicator());
-        }
-      },
-          ),
+                } else if (snapshot.hasError) {
+                  return Center(child: Text("Error loading sentence"));
+                } else {
+                  return Center(child: CupertinoActivityIndicator());
+                }
+              },
+            ),
             Positioned(
               left: 16,
               bottom: 16,
@@ -263,6 +308,22 @@ class _CupertinoSentenceShufflePageState extends State<CupertinoSentenceShuffleP
                     style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                   ),
                 ],
+              ),
+            ),
+            Positioned(
+              right: 16,
+              top: 16,
+              child: CupertinoButton(
+                onPressed: () async {
+                  final sentences = await fetchSentences();
+                  Navigator.push(
+                    context,
+                    CupertinoPageRoute(
+                      builder: (context) => CheatsheetPage(sentences: sentences['sentences']),
+                    ),
+                  );
+                },
+                child: Text('Cheatsheet'),
               ),
             ),
           ],
